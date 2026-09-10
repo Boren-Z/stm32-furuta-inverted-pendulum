@@ -4,12 +4,12 @@
 
 typedef struct {
 	float Target;		// Setpoint
-	float Actual;		// Measured feedback
-	float Out;			// Controller output (clamped to OutMin..OutMax)
+	float Actual;		// Feedback
+	float Out;			
 
-	float Kp;			// Proportional gain
-	float Ki;			// Integral gain (0 disables and clears the integrator)
-	float Kd;			// Derivative gain
+	float Kp;			
+	float Ki;			
+	float Kd;			
 
 	float Error0;		// Current error (Target - Actual)
 	float Error1;		// Previous error, for the derivative term

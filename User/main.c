@@ -11,7 +11,7 @@
 #include "PID.h"
 
 
-// Tuning -- redacted. Recalibrate all of these for your own hardware.
+// Recalibrate all of these for your own hardware.
 #define CENTER_ANGLE		0			// ADC reading at the balance point
 #define CENTER_RANGE		0			// Half-width of the "catchable" window around the upright angle
 #define START_PWM			0			// Swing-up kick strength (PWM)
@@ -98,24 +98,25 @@ int main(void)
 	while (1)
 	{
 		KeyNum = Key_GetNum();
-		if (KeyNum == 1)				// key 1: start / stop
+		if (KeyNum == 1)						// key 1: start / stop
 		{
 			if (RunState == 0) 	RunState = 21; // arm: swing up first, leave the dead zone
 			else 				RunState = 0;  // any other state -> stop
 		}
 
-		if (KeyNum == 2)				// key 2: nudge target position right (clamped)
+		if (KeyNum == 2)						// key 2: nudge target position right (clamped)
 		{
 			LocationPID.Target += POS_STEP;
 			if (LocationPID.Target > POS_LIMIT)  LocationPID.Target = POS_LIMIT;
 		}
 
-		if (KeyNum == 3)				// key 3: nudge target position left (clamped)
+		if (KeyNum == 3)						// key 3: nudge target position left (clamped)
 		{
 			LocationPID.Target -= POS_STEP;
 			if (LocationPID.Target < -POS_LIMIT) LocationPID.Target = -POS_LIMIT;
 		}
-		if (RunState) 	LED_ON();		// LED on = routine active
+
+		if (RunState) 	LED_ON();
 		else 			LED_OFF();
 	}
 }
@@ -126,7 +127,7 @@ int main(void)
   * @brief  1 ms control tick. Runs the key scan, samples angle/speed/position,
   *         drives the swing-up state machine, and (in the balancing state) the
   *         cascaded positional PID: inner AnglePID every 5 ms, outer LocationPID
-  *         every 50 ms. The fixed 1 ms period is what lets PID_Update skip dt.
+  *         every 50 ms.
   * @retval None
   */
 void TIM1_UP_IRQHandler(void)
@@ -139,30 +140,24 @@ void TIM1_UP_IRQHandler(void)
 		Key_Tick();
 
 		Angle = AD_GetValue();			// pendulum tip angle (ADC)
-		Speed = Encoder_Get();			// arm speed = encoder delta over this 1 ms tick
-		Location += Speed;				// integrate speed -> arm position
+		Speed = Encoder_Get();			// arm speed 
+		Location += Speed;				// integrate speed = arm position
 
 		/*
-			Swing-up strategy (no model needed): pump energy in like pushing a swing.
-			State 1 samples the angle every 40 ms and keeps the last three samples.
-			Three samples on the same side with the middle one the largest (or smallest)
-			means the pendulum just hit a turning point on that side and is momentarily
-			still -- the best instant to push toward the centre. Each kick is a fixed
-			+/-START_PWM burst lasting START_TIME ms; successive kicks add a little
-			amplitude every swing until the tip passes over the top, where control is
-			handed to the PID.
+			Swing-up strategy (no model needed): Give energy in like pushing a swing.
+			
 		*/
 		if (RunState == 0)		// stopped
 		{
-			Motor_SetPWM(0);	// no PID running: force the motor to 0 or it keeps coasting
+			Motor_SetPWM(0);	// no PID running
 		}
-		else if (RunState == 1)	// detecting: look for a turning point, then pick a kick direction
+		else if (RunState == 1)	
 		{
 			Count0++;
 			if (Count0 >= 40)			// sample the swing every 40 ms (40 * 1 ms tick)
 			{
 				Count0 = 0;
-
+				// Keeps the last three samples.
 				Angle2 = Angle1;		// push the newest sample in, drop the oldest
 				Angle1 = Angle0;
 				Angle0 = Angle;
@@ -189,16 +184,16 @@ void TIM1_UP_IRQHandler(void)
 					&& Angle1 > CENTER_ANGLE-CENTER_RANGE
 					&& Angle1 < CENTER_ANGLE+CENTER_RANGE
 					&& Angle2 > CENTER_ANGLE-CENTER_RANGE
-					&& Angle2 < CENTER_ANGLE+CENTER_RANGE)// three samples inside the window: tip is up and slow
+					&& Angle2 < CENTER_ANGLE+CENTER_RANGE)// three samples inside the window
 				{
-					AnglePID.ErrorInt = 0;		// fresh handoff: clear both integrators
+					AnglePID.ErrorInt = 0;		// clear both integrators
 					LocationPID.ErrorInt = 0;
-					Location = 0;				// and make "here" the position origin
+					Location = 0;				// and make the position origin
 					RunState = 4;
 				}
 			}
 		}
-
+		// The best instant to push toward the centre
 		// One left kick: push +, hold START_TIME ms, push - to brake, hold, then re-detect
 		else if (RunState == 21)		// left kick, step 1: drive +
 		{
@@ -206,7 +201,7 @@ void TIM1_UP_IRQHandler(void)
 			CountTime = START_TIME;		// load the hold-time counter
 			RunState = 22;
 		}
-		else if (RunState == 22)		// left kick, step 2: hold
+		else if (RunState == 22)		// left, step 2: hold
 		{
 			CountTime--;
 			if (CountTime == 0)
@@ -214,13 +209,13 @@ void TIM1_UP_IRQHandler(void)
 				RunState = 23;
 			}
 		}
-		else if (RunState == 23)		// left kick, step 3: reverse drive to brake
+		else if (RunState == 23)		// left, step 3: reverse drive to brake
 		{
 			Motor_SetPWM(-START_PWM);
 			CountTime = START_TIME;
 			RunState = 24;
 		}
-		else if (RunState == 24)		// left kick, step 4: hold, then back to detecting
+		else if (RunState == 24)		// left, step 4: hold, then back to detecting
 		{
 			CountTime--;
 			if (CountTime == 0)
@@ -229,7 +224,7 @@ void TIM1_UP_IRQHandler(void)
 				RunState = 1;
 			}
 		}
-
+		// The best instant to push toward the centre
 		// One right kick: mirror of the left sequence (push -, hold, push +, hold)
 		else if (RunState == 31)// right kick, step 1: drive -
 		{
@@ -237,7 +232,7 @@ void TIM1_UP_IRQHandler(void)
 			CountTime = START_TIME;
 			RunState = 32;
 		}
-		else if (RunState == 32)// right kick, step 2: hold
+		else if (RunState == 32)		// right, step 2: hold
 		{
 			CountTime--;
 			if (CountTime == 0)
@@ -245,7 +240,7 @@ void TIM1_UP_IRQHandler(void)
 				RunState = 33;
 			}
 		}
-		else if (RunState == 33)// right kick, step 3: reverse drive to brake
+		else if (RunState == 33)		// right, step 3: reverse drive to brake
 		{
 			Motor_SetPWM(START_PWM);
 			CountTime = START_TIME;
@@ -256,12 +251,16 @@ void TIM1_UP_IRQHandler(void)
 			CountTime--;
 			if (CountTime == 0)
 			{
-				Motor_SetPWM(0);// motor twitches, so zero it
+				Motor_SetPWM(0);// motor twitches, zero
 				RunState = 1;
 			}
 		}
 
-		else if (RunState == 4)// balancing: cascaded PID holds the arm upright
+
+		/* Successive kicks add a little amplitude every swing until the tip passes over the top,
+		   where control is handed to the PID.
+		*/
+		else if (RunState == 4)// balancing: cascaded PID 
 		{
 			if (!(Angle > CENTER_ANGLE - CENTER_RANGE
 				&& Angle < CENTER_ANGLE + CENTER_RANGE))// safety: tip fell out of the window
@@ -277,12 +276,13 @@ void TIM1_UP_IRQHandler(void)
 				PID_Update(&AnglePID);
 				Motor_SetPWM(AnglePID.Out);			// PID output -> motor
 			}
+
 			// cascade: outer position PID trims the angle setpoint so the arm drifts back to Target
 			Count2 ++;
 			if (Count2 >= 50)// outer loop: position PID every 50 ms (10x slower than the inner loop)
 			{
 				Count2 = 0;
-				LocationPID.Actual = Location;		// feedback = arm position
+				LocationPID.Actual = Location;						// feedback = arm position
 				PID_Update(&LocationPID);
 				AnglePID.Target = CENTER_ANGLE - LocationPID.Out;	// lean slightly to chase the position
 			}

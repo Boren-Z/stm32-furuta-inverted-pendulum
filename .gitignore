@@ -1,0 +1,6 @@
+Objects/
+Listings/
+DebugConfig/
+*.uvguix.*
+*.uvoptx
+.vscode/

@@ -1,5 +1,7 @@
 # STM32F103 Furuta Inverted Pendulum
-
+<p align="center">
+<img width="575" height="689" alt="pendulum demp" src="https://github.com/user-attachments/assets/eb8f5764-f26e-46e5-99f7-885743f10300" />
+</p>
 A rotary (Furuta-style) inverted pendulum built on the STM32F103C8T6 using the Standard Peripheral Library. A motor drives a horizontal arm (encoder feedback), with a pendulum hanging perpendicular from the arm's far end (potentiometer feedback) — not a cart-based pendulum.
 
 This was an earlier PID investigating project, built before the [STM32 self-balancing robot](https://github.com/Boren-Z/stm32-balance-car-ola) — it's where the motor control and cascade-PID fundamentals used in that later project were first worked out.

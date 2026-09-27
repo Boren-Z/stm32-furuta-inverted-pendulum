@@ -29,7 +29,7 @@ Both loops run inside a single 1 ms hardware timer interrupt (TIM1), with the 5 
 
 ### Swing-up
 
-The arm has no gearbox or feedback stiff enough to snap the pendulum upright from rest, so it must be swung up first, like pumping a swing. A detection state samples the tip angle every 40 ms and keeps the last three samples; three samples on the same side, with the middle one being the extreme, means the pendulum just hit a turning point and is momentarily still — the best instant to kick it toward the centre. Each kick is a short, fixed-duration PWM burst in one direction followed by a reverse burst to brake. Kicks repeat, gaining a little amplitude each swing, until the tip passes over the top and settles inside a window around the upright angle, at which point control hands off to the cascade PID.
+The arm has no gearbox or feedback stiff enough to snap the pendulum upright from rest, so it must be swung up first, like pumping a swing. A detection state samples the tip angle every 40 ms and keeps the last three samples; three samples on the same side, with the middle one at the extreme, means the pendulum just hit a turning point and is momentarily still, and that is the best instant to kick it toward the centre. Each kick is a short, fixed-duration PWM burst in one direction followed by a reverse burst to brake. Kicks repeat, gaining a little amplitude each swing, until the tip passes over the top and settles inside a window around the upright angle, at which point control hands off to the cascade PID.
 
 ---
 
@@ -41,7 +41,7 @@ Built with **Keil MDK5**, using the STM32 Standard Peripheral Library (not HAL).
 2. Build (F7)
 3. Flash via ST-Link (SWD)
 
-> Tuning constants (`CENTER_ANGLE`, `START_PWM`, PID gains, etc.) in `main.c` are hardware-specific and have been zeroed out — recalibrate for your own build.
+> Tuning constants (`CENTER_ANGLE`, `START_PWM`, PID gains, etc.) in `main.c` are hardware-specific and have been zeroed out.
 
 ---
 
